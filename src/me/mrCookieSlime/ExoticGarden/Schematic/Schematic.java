@@ -3,9 +3,23 @@ package me.mrCookieSlime.ExoticGarden.Schematic;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Random;
 
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.LocalWorld;
+import com.sk89q.worldedit.Vector;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.extent.Extent;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
+import com.sk89q.worldedit.function.operation.Operation;
+import com.sk89q.worldedit.function.operation.Operations;
+import com.sk89q.worldedit.math.transform.Transform;
+import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.world.registry.WorldData;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SkullType;
@@ -23,6 +37,7 @@ import me.mrCookieSlime.ExoticGarden.Schematic.org.jnbt.NBTInputStream;
 import me.mrCookieSlime.ExoticGarden.Schematic.org.jnbt.ShortTag;
 import me.mrCookieSlime.ExoticGarden.Schematic.org.jnbt.Tag;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
 
 /*
 *
@@ -103,54 +118,23 @@ public class Schematic {
 	}
 
 	@SuppressWarnings("deprecation")
-	public static void pasteSchematic(Location loc, Tree tree) {
-		Schematic schematic = null;
+	public void pasteSchematic(Location loc, Tree tree) {
+		InputStream schematic = null;
 		try {
-			schematic = tree.getSchematic();
+			schematic = new FileInputStream(new File(tree.getSchematic()));
+			BukkitWorld bw = new BukkitWorld(loc.getWorld());
+			WorldData wd = bw.getWorldData();
+			Clipboard cb = ClipboardFormat.SCHEMATIC.getReader(schematic).read(wd);
+			ClipboardHolder ch = new ClipboardHolder(cb,wd);
+			Vector to = new Vector(loc.getX(),loc.getY(),loc.getZ());
+
+
+			EditSession es = WorldEdit.getInstance().getEditSessionFactory().getEditSession(bw,1000);
+			final Operation operation = ch.createPaste(es,wd).to(to).ignoreAirBlocks(true).build();
+			Operations.completeBlindly(operation);
+			es.flushQueue();
 		} catch (IOException e) {}
 
-		BlockFace[] bf = {BlockFace.NORTH, BlockFace.NORTH_EAST, BlockFace.EAST, BlockFace.SOUTH_EAST, BlockFace.SOUTH, BlockFace.SOUTH_WEST, BlockFace.WEST, BlockFace.NORTH_WEST};
-		short[] blocks = schematic.getBlocks();
-		byte[] blockData = schematic.getData();
-
-		short length = schematic.getLenght();
-		short width = schematic.getWidth();
-		short height = schematic.getHeight();
-
-		for (int x = 0; x < width; ++x) {
-			for (int y = 0; y < height; ++y) {
-				for (int z = 0; z < length; ++z) {
-					int index = y * width * length + z * width + x;
-					Block block = new Location(loc.getWorld(), x + loc.getX() - length / 2, y + loc.getY(), z + loc.getZ() - width / 2).getBlock();
-					if (block.getType().equals(null) || block.getType().equals(Material.AIR) || block.getType().isTransparent()) {
-						if (Material.getMaterial(blocks[index]) != null) {
-							if (!(block.getState() instanceof InventoryHolder)) {
-								if (blocks[index] != 0) block.setTypeIdAndData(blocks[index], blockData[index], false);
-								if (Material.getMaterial(blocks[index]) == Material.LEGACY_LEAVES  || Material.getMaterial(blocks[index]) == Material.LEGACY_LEAVES_2) {
-									if (CSCoreLib.randomizer().nextInt(100) < 25) BlockStorage.store(block, tree.getItem());
-									block.setData((byte) 0);
-								}
-								else if (Material.getMaterial(blocks[index]) == Material.LEGACY_SKULL && block.getState() instanceof Skull) {
-									Skull s = (Skull) block.getState();
-									s.setSkullType(SkullType.PLAYER);
-									s.setRotation(bf[new Random().nextInt(bf.length)]);
-									s.setRawData((byte) 1);
-									s.update();
-
-									try {
-										CustomSkull.setSkull(s.getBlock(), tree.getTexture());
-									} catch (Exception e) {
-										e.printStackTrace();
-									}
-
-									BlockStorage.store(s.getBlock(), tree.getFruit());
-								}
-							}
-						}
-					}
-				}
-			}
-		}
 	}
 
 	@SuppressWarnings("resource")
