@@ -25,6 +25,7 @@
 		    <id>jitpack.io</id>
 		    <url>https://jitpack.io</url>
 		</repository>
+        <repository><id>FAWE</id><url>http://ci.athion.net/job/FastAsyncWorldEdit/ws/mvn/</url></repository>
     </repositories>
     <build>
     <!--Maintain existing structure (as much as possible)-->
@@ -62,6 +63,11 @@
 	        <artifactId>CS-CoreLib</artifactId>
 	        <version>v1.5.18</version>
 	    </dependency>
+        <dependency>
+            <groupId>com.boydti</groupId>
+            <artifactId>fawe-api</artifactId>
+            <version>latest</version>
+        </dependency>
         <dependency>
 	        <groupId>com.github.TheBusyBiscuit</groupId>
 	        <artifactId>Slimefun4</artifactId>
